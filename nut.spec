@@ -7,7 +7,7 @@
 %global nut_gid 57
 
 %global cgidir  /var/www/nut-cgi-bin
-%global piddir  /var/run/nut
+%global piddir  /run/nut
 %global modeldir /usr/sbin
 # powerman is retired on Fedora, therefore disable it by default
 %bcond_with powerman
