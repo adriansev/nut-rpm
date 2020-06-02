@@ -15,12 +15,14 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.7.4
-Release: 26%{?dist}
+Release: 27%{?dist}
 License: GPLv2+ and GPLv3+
 Url: http://www.networkupstools.org/
 Source: http://www.networkupstools.org/source/2.7/%{name}-%{version}.tar.gz
 Source3: nut-client.tmpfiles
 Source4: libs.sh
+# Upstream support for OpenSSL-1.1.0, TLS > 1.0
+Patch0: https://patch-diff.githubusercontent.com/raw/networkupstools/nut/pull/504.patch
 Patch1: nut-2.6.3-tmpfiles.patch
 
 #quick fix. TODO: fix it properly
@@ -31,7 +33,7 @@ Patch8: nut-2.6.5-unreachable.patch
 Patch9: nut-2.6.5-rmpidf.patch
 Patch10: nut-2.7.4-cloexec.patch
 
-Requires(pre): shadow-utils systemd-udev
+Requires(pre): shadow-utils
 Requires(post): coreutils systemd
 Requires(preun): systemd
 Requires(postun): coreutils systemd
@@ -88,7 +90,7 @@ live status tracking on web pages, and more.
 Summary: Network UPS Tools client monitoring utilities
 Requires(post): systemd
 Requires(preun): systemd
-Requires(pre): shadow-utils systemd-udev
+Requires(pre): shadow-utils
 %if %{with python2}
 Requires: pygtk2, pygtk2-libglade
 #only for python and gui part
@@ -103,7 +105,7 @@ attached to a different computer on the network.
 %package cgi
 Summary: CGI utilities for the Network UPS Tools
 Requires: %{name}-client = %{version}-%{release} webserver
-Requires(pre): shadow-utils udev
+Requires(pre): shadow-utils
 
 %description cgi
 This package includes CGI programs for accessing UPS status via a web
@@ -127,6 +129,7 @@ necessary to develop NUT client applications.
 
 %prep
 %setup -q
+%patch0 -p1 -b .openssl
 %patch1 -p1 -b .tmpfiles
 %patch3 -p1 -b .quickfix
 %patch5 -p1 -b .dlfix
@@ -157,7 +160,9 @@ export LDFLAGS="-Wl,-z,now"
     --without-powerman \
 %endif
     --with-libltdl \
+%if (0%{?fedora} && 0%{?fedora} < 33) || 0%{?el8}
     --with-nss \
+%endif
     --without-wrap \
     --with-cgi \
     --datadir=%{_datadir}/%{name} \
@@ -238,7 +243,7 @@ ln -s %{_datadir}/nut/nut-monitor/nut-monitor %{buildroot}%{_bindir}/nut-monitor
 %pre
 /usr/sbin/useradd -c "Network UPS Tools" -u %{nut_uid}  \
         -s /bin/false -r -d %{_localstatedir}/lib/ups %{name} 2> /dev/null || :
-/usr/sbin/usermod -G dialout %{name}
+/usr/sbin/usermod -G dialout,tty %{name}
 
 # do not let upsmon run during upgrade rhbz#916472
 # phase 1: stop upsmon before upsd changes
@@ -251,7 +256,6 @@ fi
 
 %post
 /sbin/ldconfig
-udevadm control --reload ||:
 %systemd_post nut-driver.service nut-server.service
 
 %preun
@@ -264,12 +268,12 @@ udevadm control --reload ||:
 %pre client
 /usr/sbin/useradd -c "Network UPS Tools" -u %{nut_uid} \
         -s /bin/false -r -d %{_localstatedir}/lib/ups %{name} 2> /dev/null || :
-/usr/sbin/usermod -G dialout %{name}
+/usr/sbin/usermod -G dialout,tty %{name}
 
 %pre cgi
 /usr/sbin/useradd -c "Network UPS Tools" -u %{nut_uid} \
         -s /bin/false -r -d %{_localstatedir}/lib/ups %{name} 2> /dev/null || :
-/usr/sbin/usermod -G dialout %{name}
+/usr/sbin/usermod -G dialout,tty %{name}
 
 %post client
 /sbin/ldconfig
@@ -441,6 +445,9 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Tue Jun 02 2020 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-27
+- nut user needs tty group for wall (#1774591)
+
 * Fri Oct 04 2019 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-26
 - drop pygtk2 requirements
 
