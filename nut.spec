@@ -203,9 +203,7 @@ mkdir -p %{buildroot}%{modeldir} \
 
 %make_install
 
-%if 0%{?fedora} || 0%{?rhel} > 6
-  install -p -D -m 644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/nut-client.conf
-%endif
+install -p -D -m 644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/nut-client.conf
 
 rm -rf %{buildroot}%{_prefix}/html
 rm -f %{buildroot}%{_libdir}/*.la
@@ -388,9 +386,7 @@ fi
 %dir %{_sysconfdir}/ups
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upsmon.conf
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upssched.conf
-%if 0%{?fedora} || 0%{?rhel} > 6
-  %{_tmpfilesdir}/nut-client.conf
-%endif
+%{_tmpfilesdir}/nut-client.conf
 %dir %attr(750,nut,nut) %{_localstatedir}/lib/ups
 # upsmon.pid is written as root, so root needs access for now
 %ghost %attr(770,root,nut) %{piddir}
