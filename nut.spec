@@ -1,5 +1,4 @@
 %global _hardened_build 1
-#global with_python2 0
 %bcond_with python2
 
 #TODO: split nut-client so it does not require python
@@ -14,11 +13,11 @@
 
 Summary: Network UPS Tools
 Name: nut
-Version: 2.7.4
-Release: 27%{?dist}
+Version: 2.8.0
+Release: 1%{?dist}
 License: GPLv2+ and GPLv3+
 Url: http://www.networkupstools.org/
-Source: http://www.networkupstools.org/source/2.7/%{name}-%{version}.tar.gz
+Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
 Source3: nut-client.tmpfiles
 Source4: libs.sh
 # Upstream support for OpenSSL-1.1.0, TLS > 1.0
@@ -26,12 +25,13 @@ Patch0: https://patch-diff.githubusercontent.com/raw/networkupstools/nut/pull/50
 Patch1: nut-2.6.3-tmpfiles.patch
 
 #quick fix. TODO: fix it properly
-Patch3: nut-2.6.5-quickfix.patch
 Patch5: nut-2.6.5-dlfix.patch
 Patch7: nut-2.6.5-foreground.patch
 Patch8: nut-2.6.5-unreachable.patch
 Patch9: nut-2.6.5-rmpidf.patch
 Patch10: nut-2.7.4-cloexec.patch
+Patch11: nut-2.7.4-nutscanner-FTBFS.patch
+Patch12: nut-2.7.4-scratchdes.patch
 
 Requires(pre): shadow-utils
 Requires(post): coreutils systemd
@@ -39,8 +39,10 @@ Requires(preun): systemd
 Requires(postun): coreutils systemd
 Obsoletes: nut-hal < 2.6.0-7
 
+BuildRequires: make
 BuildRequires: autoconf
 BuildRequires: automake
+BuildRequires: augeas-libs
 BuildRequires: avahi-devel
 BuildRequires: cppunit-devel
 BuildRequires: dbus-glib-devel
@@ -70,6 +72,7 @@ BuildRequires: powerman-devel
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: /usr/bin/pathfix.py
+BuildRequires: systemd-rpm-macros
 
 %ifnarch s390 s390x
 BuildRequires: libusb-devel
@@ -77,7 +80,7 @@ BuildRequires: libusb-devel
 
 ExcludeArch: s390 s390x
 
-%global restart_flag /var/run/%{name}/%{name}-restart-after-rpm-install
+%global restart_flag /run/%{name}/%{name}-restart-after-rpm-install
 
 %description
 These programs are part of a developing project to monitor the assortment 
@@ -129,29 +132,27 @@ necessary to develop NUT client applications.
 
 %prep
 %setup -q
-%patch0 -p1 -b .openssl
+#patch0 -p1 -b .openssl
 %patch1 -p1 -b .tmpfiles
-%patch3 -p1 -b .quickfix
-%patch5 -p1 -b .dlfix
-%patch7 -p1 -b .foreground
+#patch5 -p1 -b .dlfix
+#%patch7 -p1 -b .foreground
 %patch8 -p1 -b .unreachable
 %patch9 -p1 -b .rmpidf
-%patch10 -p1 -b .cloexec
+#%patch10 -p1 -b .cloexec
+#%patch11 -p1 -b .nutscanner-FTBFS
+#%patch12 -p1 -b .scratchdes
 
-sed -i 's|=NUT-Monitor|=nut-monitor|'  scripts/python/app/nut-monitor.desktop
-sed -i 's|env python|env python3|' scripts/python/app/NUT-Monitor
-sed -i "s|sys.argv\[0\]|'%{_datadir}/%{name}/nut-monitor/nut-monitor'|" scripts/python/app/NUT-Monitor
+sed -i 's|=NUT-Monitor|=nut-monitor|'  scripts/python/app/nut-monitor-py3qt5.desktop
+sed -i "s|sys.argv\[0\]|'%{_datadir}/%{name}/nut-monitor/nut-monitor'|" scripts/python/app/NUT-Monitor-py3qt5.in
 sed -i 's|LIBSSL_LDFLAGS|LIBSSL_LIBS|' lib/libupsclient-config.in
 sed -i 's|LIBSSL_LDFLAGS|LIBSSL_LIBS|' lib/libupsclient.pc.in
-
-# Fix python shbangs
-pathfix.py -pni "%{__python3} %{py3_shbang_opts}" scripts/python scripts/python/app/NUT-Monitor
 
 # workaround for multilib conflicts - caused by patch changing modification time of scripts
 find . -mtime -1 -print0 | xargs -0 touch --reference %{SOURCE0}
 
 %build
 autoreconf -i
+export CXXFLAGS="-std=c++14 $RPM_OPT_FLAGS"
 # prevent assignment of default value, it would break configure's tests
 export LDFLAGS="-Wl,-z,now"
 %configure \
@@ -164,17 +165,21 @@ export LDFLAGS="-Wl,-z,now"
     --with-nss \
 %endif
     --without-wrap \
+    --without-modbus \
+    --without-linux-i2c \
     --with-cgi \
+    --with-python3 \
     --datadir=%{_datadir}/%{name} \
     --with-user=%{name} \
     --with-group=dialout \
-    --with-statepath=%{piddir} \
-    --with-pidpath=%{piddir} \
-    --with-altpidpath=%{piddir} \
+    --with-statepath=/run/nut \
+    --with-pidpath=/run/nut \
+    --with-altpidpath=/run/nut \
     --sysconfdir=%{_sysconfdir}/ups \
     --with-cgipath=%{cgidir} \
     --with-drvpath=%{modeldir} \
     --with-systemdsystemunitdir=%{_unitdir} \
+    --with-systemdshutdowndir=/lib/systemd/system-shutdown \
     --with-pkgconfig-dir=%{_libdir}/pkgconfig \
     --disable-static \
     --with-udev-dir=%{_usr}/lib/udev \
@@ -198,13 +203,16 @@ mkdir -p %{buildroot}%{modeldir} \
 
 %make_install
 
-%if 0%{?fedora} || 0%{?rhel} > 6
-  install -p -D -m 644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/nut-client.conf
-%endif
+#if 0%{?fedora} || 0%{?rhel} > 6
+#  install -p -D -m 644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/nut-client.conf
+#endif
+
+mv %{buildroot}%{_tmpfilesdir}/nut-common.tmpfiles %{buildroot}%{_tmpfilesdir}/nut-common.conf
 
 rm -rf %{buildroot}%{_prefix}/html
 rm -f %{buildroot}%{_libdir}/*.la
 rm -rf docs/man
+rm -rf %{buildroot}%{_datadir}/nut/solaris-init
 find docs/ -name 'Makefile*' -delete
 
 pushd conf; 
@@ -307,18 +315,26 @@ fi
 %attr(644,root,root) %{_usr}/lib/udev/rules.d/62-nut-ipmipsu.rules
 %{modeldir}/*
 %exclude %{modeldir}/netxml-ups
-%{_unitdir}/nut-driver.service
+%{_unitdir}/nut-driver-enumerator.path
+%{_unitdir}/nut-driver-enumerator.service
+%{_unitdir}/nut-driver@.service
+%{_unitdir}/nut-driver.target
 %{_unitdir}/nut-server.service
+%{_unitdir}/nut.target
 %{_sbindir}/upsd
 %{_bindir}/nut-scanner
 %{_bindir}/upslog
 %{_libdir}/libnutscan.so.*
+%{_libexecdir}/nut-driver-enumerator.sh
+%{_datadir}/augeas/lenses/dist/nut*
 %{_datadir}/%{name}/cmdvartab
 %{_datadir}/%{name}/driver.list
 %{_mandir}/man5/nut.conf.5.gz
 %{_mandir}/man5/ups.conf.5.gz
 %{_mandir}/man5/upsd.conf.5.gz
 %{_mandir}/man5/upsd.users.5.gz
+
+
 %{_mandir}/man8/al175.8.gz
 %{_mandir}/man8/apcsmart.8.gz
 %{_mandir}/man8/apcsmart-old.8.gz
@@ -346,10 +362,13 @@ fi
 %{_mandir}/man8/masterguard.8.gz
 %{_mandir}/man8/metasys.8.gz
 %{_mandir}/man8/microdowell.8.gz
+%{_mandir}/man8/microsol-apc.8.gz
 %{_mandir}/man8/mge-utalk.8.gz
 %{_mandir}/man8/mge-shut.8.gz
 %{_mandir}/man8/nutupsdrv.8.gz
 %{_mandir}/man8/nutdrv_atcl_usb.8.gz
+%{_mandir}/man8/nutdrv_siemens_sitop.8.gz
+%{_mandir}/man8/nut-driver-enumerator.8.gz
 %{_mandir}/man8/nut-ipmipsu.8.gz
 %{_mandir}/man8/nut-recorder.8.gz
 %{_mandir}/man8/nut-scanner.8.gz
@@ -375,6 +394,7 @@ fi
 %{_mandir}/man8/upscode2.8*
 %{_mandir}/man8/upsd.8.gz
 %{_mandir}/man8/upsdrvctl.8.gz
+%{_mandir}/man8/upsdrvsvcctl.8.gz
 %{_mandir}/man8/upslog.8.gz
 %{_mandir}/man8/usbhid-ups.8.gz
 
@@ -383,9 +403,8 @@ fi
 %dir %{_sysconfdir}/ups
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upsmon.conf
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upssched.conf
-%if 0%{?fedora} || 0%{?rhel} > 6
-  %{_tmpfilesdir}/nut-client.conf
-%endif
+#{_tmpfilesdir}/nut-client.conf
+%{_tmpfilesdir}/nut-common.conf
 %dir %attr(750,nut,nut) %{_localstatedir}/lib/ups
 # upsmon.pid is written as root, so root needs access for now
 %ghost %attr(770,root,nut) %{piddir}
@@ -399,6 +418,7 @@ fi
 /lib/systemd/system-shutdown/nutshutdown
 %{_libdir}/libupsclient.so.*
 %{_libdir}/libnutclient.so.*
+%{_libdir}/libnutclientstub.so.*
 %{_mandir}/man5/upsmon.conf.5.gz
 %{_mandir}/man5/upssched.conf.5.gz
 %{_mandir}/man8/upsc.8.gz
@@ -406,7 +426,7 @@ fi
 %{_mandir}/man8/upsrw.8.gz
 %{_mandir}/man8/upsmon.8.gz
 %{_mandir}/man8/upssched.8.gz
-%{python3_sitelib}/
+%pycached %{python3_sitelib}/PyNUT.py
 %{_datadir}/nut
 %if %{with python2}
 %{_bindir}/nut-monitor
@@ -439,12 +459,17 @@ fi
 %{_mandir}/man3/libnutclient*
 %{_libdir}/libupsclient.so
 %{_libdir}/libnutclient.so
+%{_libdir}/libnutclientstub.so
 %{_libdir}/libnutscan.so
 %{_libdir}/pkgconfig/libupsclient.pc
 %{_libdir}/pkgconfig/libnutclient.pc
+%{_libdir}/pkgconfig/libnutclientstub.pc
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Tue Sep 13 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-1
+- update to 2.8.0
+
 * Tue Jun 02 2020 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-27
 - nut user needs tty group for wall (#1774591)
 
