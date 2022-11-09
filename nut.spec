@@ -6,18 +6,18 @@
 %global nut_gid 57
 
 %global cgidir  /var/www/nut-cgi-bin
-%global piddir  /var/run/nut
+%global piddir  /run/nut
 %global modeldir /usr/sbin
 # powerman is retired on Fedora, therefore disable it by default
 %bcond_with powerman
 
 Summary: Network UPS Tools
 Name: nut
-Version: 2.7.4
-Release: 44%{?dist}
+Version: 2.8.0
+Release: 1%{?dist}
 License: GPLv2+ and GPLv3+
 Url: http://www.networkupstools.org/
-Source: http://www.networkupstools.org/source/2.7/%{name}-%{version}.tar.gz
+Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
 Source3: nut-client.tmpfiles
 Source4: libs.sh
 # Upstream support for OpenSSL-1.1.0, TLS > 1.0
@@ -25,7 +25,6 @@ Patch0: https://patch-diff.githubusercontent.com/raw/networkupstools/nut/pull/50
 Patch1: nut-2.6.3-tmpfiles.patch
 
 #quick fix. TODO: fix it properly
-Patch3: nut-2.6.5-quickfix.patch
 Patch5: nut-2.6.5-dlfix.patch
 Patch7: nut-2.6.5-foreground.patch
 Patch8: nut-2.6.5-unreachable.patch
@@ -43,6 +42,7 @@ Obsoletes: nut-hal < 2.6.0-7
 BuildRequires: make
 BuildRequires: autoconf
 BuildRequires: automake
+BuildRequires: augeas-libs
 BuildRequires: avahi-devel
 BuildRequires: cppunit-devel
 BuildRequires: dbus-glib-devel
@@ -72,6 +72,7 @@ BuildRequires: powerman-devel
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: /usr/bin/pathfix.py
+BuildRequires: systemd-rpm-macros
 
 %ifnarch s390 s390x
 BuildRequires: libusb-devel
@@ -79,7 +80,7 @@ BuildRequires: libusb-devel
 
 ExcludeArch: s390 s390x
 
-%global restart_flag /var/run/%{name}/%{name}-restart-after-rpm-install
+%global restart_flag /run/%{name}/%{name}-restart-after-rpm-install
 
 %description
 These programs are part of a developing project to monitor the assortment 
@@ -131,25 +132,20 @@ necessary to develop NUT client applications.
 
 %prep
 %setup -q
-%patch0 -p1 -b .openssl
+#patch0 -p1 -b .openssl
 %patch1 -p1 -b .tmpfiles
-%patch3 -p1 -b .quickfix
-%patch5 -p1 -b .dlfix
-%patch7 -p1 -b .foreground
+#patch5 -p1 -b .dlfix
+#%patch7 -p1 -b .foreground
 %patch8 -p1 -b .unreachable
 %patch9 -p1 -b .rmpidf
-%patch10 -p1 -b .cloexec
-%patch11 -p1 -b .nutscanner-FTBFS
-%patch12 -p1 -b .scratchdes
+#%patch10 -p1 -b .cloexec
+#%patch11 -p1 -b .nutscanner-FTBFS
+#%patch12 -p1 -b .scratchdes
 
-sed -i 's|=NUT-Monitor|=nut-monitor|'  scripts/python/app/nut-monitor.desktop
-sed -i 's|env python|env python3|' scripts/python/app/NUT-Monitor
-sed -i "s|sys.argv\[0\]|'%{_datadir}/%{name}/nut-monitor/nut-monitor'|" scripts/python/app/NUT-Monitor
+sed -i 's|=NUT-Monitor|=nut-monitor|'  scripts/python/app/nut-monitor-py3qt5.desktop
+sed -i "s|sys.argv\[0\]|'%{_datadir}/%{name}/nut-monitor/nut-monitor'|" scripts/python/app/NUT-Monitor-py3qt5.in
 sed -i 's|LIBSSL_LDFLAGS|LIBSSL_LIBS|' lib/libupsclient-config.in
 sed -i 's|LIBSSL_LDFLAGS|LIBSSL_LIBS|' lib/libupsclient.pc.in
-
-# Fix python shbangs
-pathfix.py -pni "%{__python3} %{py3_shbang_opts}" scripts/python scripts/python/app/NUT-Monitor
 
 # workaround for multilib conflicts - caused by patch changing modification time of scripts
 find . -mtime -1 -print0 | xargs -0 touch --reference %{SOURCE0}
@@ -169,17 +165,21 @@ export LDFLAGS="-Wl,-z,now"
     --with-nss \
 %endif
     --without-wrap \
+    --without-modbus \
+    --without-linux-i2c \
     --with-cgi \
+    --with-python3 \
     --datadir=%{_datadir}/%{name} \
     --with-user=%{name} \
     --with-group=dialout \
-    --with-statepath=%{piddir} \
-    --with-pidpath=%{piddir} \
-    --with-altpidpath=%{piddir} \
+    --with-statepath=/run/nut \
+    --with-pidpath=/run/nut \
+    --with-altpidpath=/run/nut \
     --sysconfdir=%{_sysconfdir}/ups \
     --with-cgipath=%{cgidir} \
     --with-drvpath=%{modeldir} \
     --with-systemdsystemunitdir=%{_unitdir} \
+    --with-systemdshutdowndir=/lib/systemd/system-shutdown \
     --with-pkgconfig-dir=%{_libdir}/pkgconfig \
     --disable-static \
     --with-udev-dir=%{_usr}/lib/udev \
@@ -203,11 +203,16 @@ mkdir -p %{buildroot}%{modeldir} \
 
 %make_install
 
-install -p -D -m 644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/nut-client.conf
+#if 0%{?fedora} || 0%{?rhel} > 6
+#  install -p -D -m 644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/nut-client.conf
+#endif
+
+mv %{buildroot}%{_tmpfilesdir}/nut-common.tmpfiles %{buildroot}%{_tmpfilesdir}/nut-common.conf
 
 rm -rf %{buildroot}%{_prefix}/html
 rm -f %{buildroot}%{_libdir}/*.la
 rm -rf docs/man
+rm -rf %{buildroot}%{_datadir}/nut/solaris-init
 find docs/ -name 'Makefile*' -delete
 
 pushd conf; 
@@ -310,18 +315,26 @@ fi
 %attr(644,root,root) %{_usr}/lib/udev/rules.d/62-nut-ipmipsu.rules
 %{modeldir}/*
 %exclude %{modeldir}/netxml-ups
-%{_unitdir}/nut-driver.service
+%{_unitdir}/nut-driver-enumerator.path
+%{_unitdir}/nut-driver-enumerator.service
+%{_unitdir}/nut-driver@.service
+%{_unitdir}/nut-driver.target
 %{_unitdir}/nut-server.service
+%{_unitdir}/nut.target
 %{_sbindir}/upsd
 %{_bindir}/nut-scanner
 %{_bindir}/upslog
 %{_libdir}/libnutscan.so.*
+%{_libexecdir}/nut-driver-enumerator.sh
+%{_datadir}/augeas/lenses/dist/nut*
 %{_datadir}/%{name}/cmdvartab
 %{_datadir}/%{name}/driver.list
 %{_mandir}/man5/nut.conf.5.gz
 %{_mandir}/man5/ups.conf.5.gz
 %{_mandir}/man5/upsd.conf.5.gz
 %{_mandir}/man5/upsd.users.5.gz
+
+
 %{_mandir}/man8/al175.8.gz
 %{_mandir}/man8/apcsmart.8.gz
 %{_mandir}/man8/apcsmart-old.8.gz
@@ -349,10 +362,13 @@ fi
 %{_mandir}/man8/masterguard.8.gz
 %{_mandir}/man8/metasys.8.gz
 %{_mandir}/man8/microdowell.8.gz
+%{_mandir}/man8/microsol-apc.8.gz
 %{_mandir}/man8/mge-utalk.8.gz
 %{_mandir}/man8/mge-shut.8.gz
 %{_mandir}/man8/nutupsdrv.8.gz
 %{_mandir}/man8/nutdrv_atcl_usb.8.gz
+%{_mandir}/man8/nutdrv_siemens_sitop.8.gz
+%{_mandir}/man8/nut-driver-enumerator.8.gz
 %{_mandir}/man8/nut-ipmipsu.8.gz
 %{_mandir}/man8/nut-recorder.8.gz
 %{_mandir}/man8/nut-scanner.8.gz
@@ -378,6 +394,7 @@ fi
 %{_mandir}/man8/upscode2.8*
 %{_mandir}/man8/upsd.8.gz
 %{_mandir}/man8/upsdrvctl.8.gz
+%{_mandir}/man8/upsdrvsvcctl.8.gz
 %{_mandir}/man8/upslog.8.gz
 %{_mandir}/man8/usbhid-ups.8.gz
 
@@ -386,7 +403,8 @@ fi
 %dir %{_sysconfdir}/ups
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upsmon.conf
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upssched.conf
-%{_tmpfilesdir}/nut-client.conf
+#{_tmpfilesdir}/nut-client.conf
+%{_tmpfilesdir}/nut-common.conf
 %dir %attr(750,nut,nut) %{_localstatedir}/lib/ups
 # upsmon.pid is written as root, so root needs access for now
 %ghost %attr(770,root,nut) %{piddir}
@@ -400,6 +418,7 @@ fi
 /lib/systemd/system-shutdown/nutshutdown
 %{_libdir}/libupsclient.so.*
 %{_libdir}/libnutclient.so.*
+%{_libdir}/libnutclientstub.so.*
 %{_mandir}/man5/upsmon.conf.5.gz
 %{_mandir}/man5/upssched.conf.5.gz
 %{_mandir}/man8/upsc.8.gz
@@ -440,68 +459,19 @@ fi
 %{_mandir}/man3/libnutclient*
 %{_libdir}/libupsclient.so
 %{_libdir}/libnutclient.so
+%{_libdir}/libnutclientstub.so
 %{_libdir}/libnutscan.so
 %{_libdir}/pkgconfig/libupsclient.pc
 %{_libdir}/pkgconfig/libnutclient.pc
+%{_libdir}/pkgconfig/libnutclientstub.pc
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
-* Thu Jan 20 2022 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-44
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
+* Tue Sep 13 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-1
+- update to 2.8.0
 
-* Thu Sep 23 2021 Miro Hrončok <mhroncok@redhat.com> - 2.7.4-43
-- Don't own /usr/lib/python3.X/site-packages
-
-* Tue Sep 14 2021 Sahana Prasad <sahana@redhat.com> - 2.7.4-42
-- Rebuilt with OpenSSL 3.0.0
-
-* Thu Jul 22 2021 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-41
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
-
-* Tue Jun 08 2021 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-40
-- drop snmp-ups support for DES, as required net-snmp no longer supports it
-
-* Fri Jun 04 2021 Python Maint <python-maint@redhat.com> - 2.7.4-39
-- Rebuilt for Python 3.10
-
-* Tue Mar 02 2021 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 2.7.4-38
-- Rebuilt for updated systemd-rpm-macros
-  See https://pagure.io/fesco/issue/2583.
-
-* Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-37
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
-
-* Tue Sep 15 2020 Jeff Law <law@redhat.com> - 2.7.4-36
-- Force C++14 as this code is not C++17 ready
-
-* Wed Sep 02 2020 Josef Ridky <jridky@redhat.com> - 2.7.4-35
-- Resolves: #1865077 - FTBFS in Fedora 33
-- Rebuilt for new release of net-snmp
-
-* Sat Aug 01 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-34
-- Second attempt - Rebuilt for
-  https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
-
-* Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-33
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
-
-* Tue Jun 02 2020 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-32
+* Tue Jun 02 2020 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-27
 - nut user needs tty group for wall (#1774591)
-
-* Tue Jun 02 2020 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-31
-- update tmpfiles nut run directory
-
-* Tue May 26 2020 Orion Poplawski <orion@nwra.com> - 2.7.4-30
-- Drop old udev requires/scriptlet
-
-* Tue May 26 2020 Orion Poplawski <orion@nwra.com> - 2.7.4-29
-- Add upstream patch for OpenSSL 1.1.0 support, enable for Fedora >= 33
-
-* Tue May 26 2020 Miro Hrončok <mhroncok@redhat.com> - 2.7.4-28
-- Rebuilt for Python 3.9
-
-* Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-27
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
 
 * Fri Oct 04 2019 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-26
 - drop pygtk2 requirements
