@@ -14,24 +14,20 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPLv2+ and GPLv3+
-Url: http://www.networkupstools.org/
+Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
-Source3: nut-client.tmpfiles
 Source4: libs.sh
-# Upstream support for OpenSSL-1.1.0, TLS > 1.0
-Patch0: https://patch-diff.githubusercontent.com/raw/networkupstools/nut/pull/504.patch
 Patch1: nut-2.6.3-tmpfiles.patch
+Patch2: nut-2.8.0-piddir-owner.patch
 
 #quick fix. TODO: fix it properly
-Patch5: nut-2.6.5-dlfix.patch
-Patch7: nut-2.6.5-foreground.patch
 Patch8: nut-2.6.5-unreachable.patch
 Patch9: nut-2.6.5-rmpidf.patch
-Patch10: nut-2.7.4-cloexec.patch
-Patch11: nut-2.7.4-nutscanner-FTBFS.patch
-Patch12: nut-2.7.4-scratchdes.patch
+Patch13: nut-c99-c_attribute.patch
+Patch14: nut-c99-ax_c_printf_null.patch
+Patch15: nut-c99-strdup.patch
 
 Requires(pre): shadow-utils
 Requires(post): coreutils systemd
@@ -80,7 +76,7 @@ BuildRequires: libusb-devel
 
 ExcludeArch: s390 s390x
 
-%global restart_flag /run/%{name}/%{name}-restart-after-rpm-install
+%global restart_flag %{piddir}/%{name}-restart-after-rpm-install
 
 %description
 These programs are part of a developing project to monitor the assortment 
@@ -132,15 +128,12 @@ necessary to develop NUT client applications.
 
 %prep
 %setup -q
-#patch0 -p1 -b .openssl
 %patch1 -p1 -b .tmpfiles
-#patch5 -p1 -b .dlfix
-#%patch7 -p1 -b .foreground
 %patch8 -p1 -b .unreachable
 %patch9 -p1 -b .rmpidf
-#%patch10 -p1 -b .cloexec
-#%patch11 -p1 -b .nutscanner-FTBFS
-#%patch12 -p1 -b .scratchdes
+%patch13 -p1
+%patch14 -p1
+%patch15 -p1
 
 sed -i 's|=NUT-Monitor|=nut-monitor|'  scripts/python/app/nut-monitor-py3qt5.desktop
 sed -i "s|sys.argv\[0\]|'%{_datadir}/%{name}/nut-monitor/nut-monitor'|" scripts/python/app/NUT-Monitor-py3qt5.in
@@ -172,9 +165,9 @@ export LDFLAGS="-Wl,-z,now"
     --datadir=%{_datadir}/%{name} \
     --with-user=%{name} \
     --with-group=dialout \
-    --with-statepath=/run/nut \
-    --with-pidpath=/run/nut \
-    --with-altpidpath=/run/nut \
+    --with-statepath=%{piddir} \
+    --with-pidpath=%{piddir} \
+    --with-altpidpath=%{piddir} \
     --sysconfdir=%{_sysconfdir}/ups \
     --with-cgipath=%{cgidir} \
     --with-drvpath=%{modeldir} \
@@ -202,10 +195,6 @@ mkdir -p %{buildroot}%{modeldir} \
          %{buildroot}%{_libexecdir}
 
 %make_install
-
-#if 0%{?fedora} || 0%{?rhel} > 6
-#  install -p -D -m 644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/nut-client.conf
-#endif
 
 mv %{buildroot}%{_tmpfilesdir}/nut-common.tmpfiles %{buildroot}%{_tmpfilesdir}/nut-common.conf
 
@@ -403,7 +392,6 @@ fi
 %dir %{_sysconfdir}/ups
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upsmon.conf
 %config(noreplace) %attr(640,root,nut) %{_sysconfdir}/ups/upssched.conf
-#{_tmpfilesdir}/nut-client.conf
 %{_tmpfilesdir}/nut-common.conf
 %dir %attr(750,nut,nut) %{_localstatedir}/lib/ups
 # upsmon.pid is written as root, so root needs access for now
@@ -467,6 +455,10 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Tue Dec 06 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-2
+- fix STATEPATH location and creation (#2024651)
+- merged C99 related changes to configure from fedora
+
 * Tue Sep 13 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-1
 - update to 2.8.0
 
