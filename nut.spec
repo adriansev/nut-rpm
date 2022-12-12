@@ -14,7 +14,7 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.0
-Release: 2%{?dist}
+Release: 3%{?dist}
 License: GPLv2+ and GPLv3+
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -129,6 +129,7 @@ necessary to develop NUT client applications.
 %prep
 %setup -q
 %patch1 -p1 -b .tmpfiles
+%patch2 -p1 -b .piddir-owner
 %patch8 -p1 -b .unreachable
 %patch9 -p1 -b .rmpidf
 %patch13 -p1
@@ -455,6 +456,9 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Mon Dec 12 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-3
+- apply missing patch
+
 * Tue Dec 06 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-2
 - fix STATEPATH location and creation (#2024651)
 - merged C99 related changes to configure from fedora
