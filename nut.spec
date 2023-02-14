@@ -14,7 +14,7 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.0
-Release: 3%{?dist}
+Release: 4%{?dist}
 License: GPLv2+ and GPLv3+
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -33,6 +33,7 @@ Requires(pre): shadow-utils
 Requires(post): coreutils systemd
 Requires(preun): systemd
 Requires(postun): coreutils systemd
+Recommends: nut-xml
 Obsoletes: nut-hal < 2.6.0-7
 
 BuildRequires: make
@@ -456,6 +457,9 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Tue Feb 14 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-4
+- add nut-xml to nut recommends (#1379382)
+
 * Mon Dec 12 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-3
 - apply missing patch
 
