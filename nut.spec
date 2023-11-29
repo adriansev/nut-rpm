@@ -14,7 +14,7 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.0
-Release: 4%{?dist}
+Release: 5%{?dist}
 License: GPLv2+ and GPLv3+
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -457,6 +457,9 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Wed Nov 29 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-5
+- fix tmpfiles path in unit file (#2227107)
+
 * Tue Feb 14 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-4
 - add nut-xml to nut recommends (#1379382)
 
