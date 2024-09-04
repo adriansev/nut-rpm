@@ -337,14 +337,10 @@ fi
 
 %{_mandir}/man8/nutconf.8.gz
 
-%{_mandir}/man8/adelsystem_cbi.8.gz
-%{_mandir}/man8/apc_modbus.8.gz
-
 %{_mandir}/man8/al175.8.gz
 %{_mandir}/man8/apcsmart.8.gz
 %{_mandir}/man8/apcsmart-old.8.gz
 %{_mandir}/man8/apcupsd-ups.8.gz
-%{_mandir}/man8/asem.8.gz
 %{_mandir}/man8/bcmxcp.8*
 %{_mandir}/man8/bcmxcp_usb.8.gz
 %{_mandir}/man8/belkin.8.gz
@@ -360,12 +356,10 @@ fi
 %{_mandir}/man8/everups.8.gz
 %{_mandir}/man8/etapro.8.gz
 %{_mandir}/man8/gamatronic.8.gz
-%{_mandir}/man8/generic_modbus.8.gz
 %{_mandir}/man8/genericups.8.gz
 %if 0%{?fedora} < 39
 %{_mandir}/man8/generic_gpio.8.gz
 %endif
-%{_mandir}/man8/huawei-ups2000.8.gz
 %{_mandir}/man8/isbmex.8.gz
 %{_mandir}/man8/ivtscd.8.gz
 %{_mandir}/man8/liebert.8.gz
@@ -386,8 +380,6 @@ fi
 %{_mandir}/man8/nutdrv_qx.8.gz
 %{_mandir}/man8/oneac.8.gz
 %{_mandir}/man8/optiups.8.gz
-%{_mandir}/man8/phoenixcontact_modbus.8.gz
-%{_mandir}/man8/pijuice.8.gz
 %{_mandir}/man8/powercom.8.gz
 %if %{with powerman}
 %{_mandir}/man8/powerman-pdu.8.gz
@@ -402,7 +394,6 @@ fi
 %{_mandir}/man8/snmp-ups.8.gz
 %{_mandir}/man8/solis.8*
 %{_mandir}/man8/sockdebug.8.gz
-%{_mandir}/man8/socomec_jbus.8.gz
 %{_mandir}/man8/tripplite.8.gz
 %{_mandir}/man8/tripplite_usb.8.gz
 %{_mandir}/man8/tripplitesu.8.gz
