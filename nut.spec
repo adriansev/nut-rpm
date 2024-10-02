@@ -14,7 +14,7 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPL-2.0-or-later AND GPL-3.0-or-later
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -162,7 +162,7 @@ export LDFLAGS="-Wl,-z,now"
     --with-nss \
 %endif
     --without-wrap \
-    --without-modbus \
+    --with-modbus \
     --without-linux-i2c \
     --with-cgi \
     --with-python=%{python3} \
@@ -337,6 +337,9 @@ fi
 
 %{_mandir}/man8/nutconf.8.gz
 
+%{_mandir}/man8/adelsystem_cbi.8.gz
+%{_mandir}/man8/apc_modbus.8.gz
+
 %{_mandir}/man8/al175.8.gz
 %{_mandir}/man8/apcsmart.8.gz
 %{_mandir}/man8/apcsmart-old.8.gz
@@ -356,10 +359,12 @@ fi
 %{_mandir}/man8/everups.8.gz
 %{_mandir}/man8/etapro.8.gz
 %{_mandir}/man8/gamatronic.8.gz
+%{_mandir}/man8/generic_modbus.8.gz
 %{_mandir}/man8/genericups.8.gz
 %if 0%{?fedora} < 39
 %{_mandir}/man8/generic_gpio.8.gz
 %endif
+%{_mandir}/man8/huawei-ups2000.8.gz
 %{_mandir}/man8/isbmex.8.gz
 %{_mandir}/man8/ivtscd.8.gz
 %{_mandir}/man8/liebert.8.gz
@@ -380,6 +385,7 @@ fi
 %{_mandir}/man8/nutdrv_qx.8.gz
 %{_mandir}/man8/oneac.8.gz
 %{_mandir}/man8/optiups.8.gz
+%{_mandir}/man8/phoenixcontact_modbus.8.gz
 %{_mandir}/man8/powercom.8.gz
 %if %{with powerman}
 %{_mandir}/man8/powerman-pdu.8.gz
@@ -394,6 +400,7 @@ fi
 %{_mandir}/man8/snmp-ups.8.gz
 %{_mandir}/man8/solis.8*
 %{_mandir}/man8/sockdebug.8.gz
+%{_mandir}/man8/socomec_jbus.8.gz
 %{_mandir}/man8/tripplite.8.gz
 %{_mandir}/man8/tripplite_usb.8.gz
 %{_mandir}/man8/tripplitesu.8.gz
@@ -480,6 +487,9 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Wed Oct 02 2024 Michal Hlavinka <mhlavink@redhat.com> - 2.8.2-2
+- enable modbus drivers (rhbz#2314661)
+
 * Wed Sep 04 2024 Michal Hlavinka <mhlavink@redhat.com> - 2.8.2.1-1
 - updated to 2.8.2 (rhbz#2307300)
 
