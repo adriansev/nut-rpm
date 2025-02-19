@@ -14,7 +14,7 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.2.1
-Release: 5%{?dist}.1.git20240703pr2505
+Release: 0%{?dist}.1.git20240703pr2505
 License: GPL-2.0-or-later AND GPL-3.0-or-later
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -47,16 +47,15 @@ BuildRequires: freetype-devel
 BuildRequires: gcc
 BuildRequires: gcc-c++
 BuildRequires: gd-devel
-%if 0%{?fedora} < 39
-BuildRequires: libgpiod-devel
-%endif
+# not available in epel atm
+#BuildRequires: libgpiod-devel
+#BuildRequires: libmodbus-devel
 BuildRequires: libjpeg-devel
 BuildRequires: libpng-devel
 BuildRequires: libtool
 BuildRequires: libtool-ltdl-devel
 BuildRequires: libX11-devel
 BuildRequires: libXpm-devel
-BuildRequires: libmodbus-devel
 BuildRequires: libi2c-devel
 BuildRequires: neon-devel
 BuildRequires: net-snmp-devel
@@ -162,6 +161,8 @@ export CXXFLAGS="-std=c++14 $RPM_OPT_FLAGS"
 export LDFLAGS="-Wl,-z,now"
 %configure \
     --with-all \
+    --without-modbus \
+    --without-gpio \
 %if %{without powerman}
     --without-powerman \
 %endif
@@ -334,8 +335,8 @@ fi
 
 %{_mandir}/man8/nutconf.8.gz
 
-%{_mandir}/man8/adelsystem_cbi.8.gz
-%{_mandir}/man8/apc_modbus.8.gz
+#%{_mandir}/man8/adelsystem_cbi.8.gz
+#%{_mandir}/man8/apc_modbus.8.gz
 
 %{_mandir}/man8/al175.8.gz
 %{_mandir}/man8/apcsmart.8.gz
@@ -358,13 +359,11 @@ fi
 %{_mandir}/man8/everups.8.gz
 %{_mandir}/man8/etapro.8.gz
 %{_mandir}/man8/gamatronic.8.gz
-%{_mandir}/man8/generic_modbus.8.gz
+#%{_mandir}/man8/generic_modbus.8.gz
 %{_mandir}/man8/genericups.8.gz
-%if 0%{?fedora} < 39
-%{_mandir}/man8/generic_gpio.8.gz
-%endif
+#%{_mandir}/man8/generic_gpio.8.gz
 %{_mandir}/man8/hwmon_ina219.8.gz
-%{_mandir}/man8/huawei-ups2000.8.gz
+#%{_mandir}/man8/huawei-ups2000.8.gz
 %{_mandir}/man8/isbmex.8.gz
 %{_mandir}/man8/ivtscd.8.gz
 %{_mandir}/man8/liebert.8.gz
@@ -385,7 +384,7 @@ fi
 %{_mandir}/man8/nutdrv_qx.8.gz
 %{_mandir}/man8/oneac.8.gz
 %{_mandir}/man8/optiups.8.gz
-%{_mandir}/man8/phoenixcontact_modbus.8.gz
+#%{_mandir}/man8/phoenixcontact_modbus.8.gz
 %{_mandir}/man8/pijuice.8.gz
 %{_mandir}/man8/powercom.8.gz
 %if %{with powerman}
@@ -401,7 +400,7 @@ fi
 %{_mandir}/man8/snmp-ups.8.gz
 %{_mandir}/man8/solis.8*
 %{_mandir}/man8/sockdebug.8.gz
-%{_mandir}/man8/socomec_jbus.8.gz
+#%{_mandir}/man8/socomec_jbus.8.gz
 %{_mandir}/man8/tripplite.8.gz
 %{_mandir}/man8/tripplite_usb.8.gz
 %{_mandir}/man8/tripplitesu.8.gz
@@ -490,302 +489,6 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
-* Tue Feb 11 2025 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 2.8.2.1-5.1.git20240703pr2505
-- Add sysusers.d config file to allow rpm to create users/groups automatically
-
-* Wed Jan 29 2025 Michal Hlavinka <mhlavink@redhat.com> - 2.8.2.1-4.1.git20240703pr2505
-- fix ftbfs, make it build with unified bin/sbin
-
-* Fri Jan 17 2025 Fedora Release Engineering <releng@fedoraproject.org> - 2.8.2.1-3.1.git20240703pr2505
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_42_Mass_Rebuild
-
-* Fri Nov 15 2024 Orion Poplawski <orion@nwra.com> - 2.8.2.1-2.1.git20240703pr2505
-- Add BR systemd-devel to enable systemd notification support
-
-* Thu Jul 18 2024 Fedora Release Engineering <releng@fedoraproject.org> - 2.8.2.1-1.1.git20240703pr2505
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_41_Mass_Rebuild
-
-* Wed Jul 03 2024 Michal Hlavinka <mhlavink@redhat.com> - 2.8.2.1-0.1.git20240703pr2505
-- fix python FTBFS, uses git snapshot as of 20240703 with PR 2505
-
-* Fri Jun 07 2024 Python Maint <python-maint@redhat.com> - 2.8.2-2
-- Rebuilt for Python 3.13
-
-* Wed Apr 03 2024 Michal Hlavinka <mhlavink@redhat.com> - 2.8.2-1
-- updated to 2.8.2(2272586)
-
-* Thu Jan 25 2024 Fedora Release Engineering <releng@fedoraproject.org> - 2.8.1-4
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
-
-* Sun Jan 21 2024 Fedora Release Engineering <releng@fedoraproject.org> - 2.8.1-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
-
-* Thu Nov 30 2023 Orion Poplawski <orion@nwra.com> - 2.8.1-2
-- Re-add nut.target to nut-client (bz#2156504)
-
-* Wed Nov 01 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.1-1
-- updated to 2.8.1 (#2247337)
-
-* Tue Oct 10 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-14
-- spec cleanup, based on PR#14 by Orion Poplawski
-
-* Thu Jul 20 2023 Fedora Release Engineering <releng@fedoraproject.org> - 2.8.0-13
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_39_Mass_Rebuild
-
-* Tue Jun 13 2023 Python Maint <python-maint@redhat.com> - 2.8.0-12
-- Rebuilt for Python 3.12
-
-* Wed Apr 26 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-11
-- update license tag format (SPDX migration) for https://fedoraproject.org/wiki/Changes/SPDX_Licenses_Phase_1
-
-* Tue Feb 14 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-10
-- add nut-xml to nut recommends (#2151810)
-
-* Thu Jan 19 2023 Fedora Release Engineering <releng@fedoraproject.org> - 2.8.0-9
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_38_Mass_Rebuild
-
-* Wed Jan 04 2023 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-8
-- move upslog to nut-client, some small spec file changes (#2156504)
-
-* Wed Nov 30 2022 Charles R. Anderson <cra@alum.wpi.edu> - 2.8.0-7
-- use piddir for specifying restart_flag location
-- use piddir for specifying configure --with-statepath/pidpath/altpidpath
-- add nut-2.8.0-piddir-owner.patch for upstream tmpfiles config creation to not append /nut and always use owner root
-- update nut-2.6.3-tmpfiles.patch to use correct tmpfiles config file name
-- remove unused downstream tmpfiles source and code
-
-* Sun Nov 27 2022 Florian Weimer <fweimer@redhat.com> - 2.8.0-6
-- Port configure script to C99
-
-* Wed Aug 31 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-5
-- update pid path
-
-* Fri Jul 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 2.8.0-4
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
-
-* Mon Jun 13 2022 Python Maint <python-maint@redhat.com> - 2.8.0-3
-- Rebuilt for Python 3.11
-
-* Tue Jun 07 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-2
-- drop unused solaris init script pulling unnecessary dependency
-
-* Mon May 09 2022 Michal Hlavinka <mhlavink@redhat.com> - 2.8.0-1
-- updated to 2.8.0
-
-* Thu Jan 20 2022 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-44
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
-
-* Thu Sep 23 2021 Miro Hrončok <mhroncok@redhat.com> - 2.7.4-43
-- Don't own /usr/lib/python3.X/site-packages
-
-* Tue Sep 14 2021 Sahana Prasad <sahana@redhat.com> - 2.7.4-42
-- Rebuilt with OpenSSL 3.0.0
-
-* Thu Jul 22 2021 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-41
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
-
-* Tue Jun 08 2021 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-40
-- drop snmp-ups support for DES, as required net-snmp no longer supports it
-
-* Fri Jun 04 2021 Python Maint <python-maint@redhat.com> - 2.7.4-39
-- Rebuilt for Python 3.10
-
-* Tue Mar 02 2021 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 2.7.4-38
-- Rebuilt for updated systemd-rpm-macros
-  See https://pagure.io/fesco/issue/2583.
-
-* Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-37
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
-
-* Tue Sep 15 2020 Jeff Law <law@redhat.com> - 2.7.4-36
-- Force C++14 as this code is not C++17 ready
-
-* Wed Sep 02 2020 Josef Ridky <jridky@redhat.com> - 2.7.4-35
-- Resolves: #1865077 - FTBFS in Fedora 33
-- Rebuilt for new release of net-snmp
-
-* Sat Aug 01 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-34
-- Second attempt - Rebuilt for
-  https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
-
-* Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-33
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
-
-* Tue Jun 02 2020 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-32
-- nut user needs tty group for wall (#1774591)
-
-* Tue Jun 02 2020 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-31
-- update tmpfiles nut run directory
-
-* Tue May 26 2020 Orion Poplawski <orion@nwra.com> - 2.7.4-30
-- Drop old udev requires/scriptlet
-
-* Tue May 26 2020 Orion Poplawski <orion@nwra.com> - 2.7.4-29
-- Add upstream patch for OpenSSL 1.1.0 support, enable for Fedora >= 33
-
-* Tue May 26 2020 Miro Hrončok <mhroncok@redhat.com> - 2.7.4-28
-- Rebuilt for Python 3.9
-
-* Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-27
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
-
-* Fri Oct 04 2019 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-26
-- drop pygtk2 requirements
-
-* Thu Oct 03 2019 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-25
-- drop python 2 requirements including nut-monitor app
-
-* Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-24
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
-
-* Mon Mar 25 2019 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-23
-- add missing requirements for nut monitor
-- fix file descriptor leak for notifycmd
-
-* Fri Feb 01 2019 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-22
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
-
-* Tue Oct 16 2018 Orion Poplawski <orion@nwra.com> - 2.7.4-21
-- Cleanup and modernize spec
-- Fix ownership/permissions of /var/run/nut (bug #1584330, #1580082)
-- Fix python shbangs
-
-* Sun Oct 14 2018 Peter Robinson <pbrobinson@fedoraproject.org> 2.7.4-20
-- Updates dependencies, modernise spec, use %%license
-- Python build fixes
-
-* Tue Jul 24 2018 Adam Williamson <awilliam@redhat.com> - 2.7.4-19
-- Rebuild for new net-snmp
-
-* Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-18
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
-
-* Tue Apr 17 2018 Xavier Bachelot <xavier@bachelot.org> - 2.7.4-17
-- Remove unrecognized configure option --without-hal
-- Explicitely disable tcpwrapper support
-- Remove unneeded CRLF EOL fix
-- Add BR: cppunit-devel
-
-* Wed Mar 07 2018 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-16
-- add gcc buildrequire
-
-* Wed Feb 14 2018 Iryna Shcherbina <ishcherb@redhat.com> - 2.7.4-15
-- Update Python 2 dependency declarations to new packaging standards
-  (See https://fedoraproject.org/wiki/FinalizingFedoraSwitchtoPython3)
-
-* Thu Feb 08 2018 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-14
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
-
-* Tue Nov 07 2017 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 2.7.4-13
-- Remove old crufty coreutils requires
-
-* Wed Aug 30 2017 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-12
-- rebuild for freeipmi update
-
-* Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-11
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
-
-* Thu Jul 27 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-10
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
-
-* Thu Jun 22 2017 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-9
-- enable nss crypto (#1463071)
-
-* Wed May 24 2017 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-8
-- fix location of tmpfiles.d in service files (#1399602)
-
-* Sat Feb 11 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.4-7
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
-
-* Wed Feb 01 2017 Sandro Mani <manisandro@gmail.com> - 2.7.4-6
-- Rebuild (libwebp)
-
-* Fri Nov 11 2016 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-5
-- use %%_tmpfilesdir macro (#1394009)
-
-* Thu Sep 15 2016 Till Maas <opensource@till.name> - 2.7.4-4
-- Disable powerman support, powerman was retired on Fedora
-
-* Thu Aug 11 2016 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-3
-- make sure tmpfiles creation is executped before ups driver (#1365904,#1349362)
-
-* Tue Jul 19 2016 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.7.4-2
-- https://fedoraproject.org/wiki/Changes/Automatic_Provides_for_Python_RPM_Packages
-
-* Sat Mar 12 2016 Michal Hlavinka <mhlavink@redhat.com> - 2.7.4-1
-- nut updated to 2.7.4
-
-* Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 2.7.3-7
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
-
-* Sat Dec 05 2015 Kalev Lember <klember@redhat.com> - 2.7.3-6
-- Rebuilt for libfreeipmi soname bump
-
-* Tue Dec  1 2015 Tom Callaway <spot@fedoraproject.org> - 2.7.3-5
-- rebuild for libvpx 1.5.0
-
-* Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.7.3-4
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
-
-* Sat May 02 2015 Kalev Lember <kalevlember@gmail.com> - 2.7.3-3
-- Rebuilt for GCC 5 C++11 ABI change
-
-* Tue Apr 28 2015 Michal Hlavinka <mhlavink@redhat.com> - 2.7.3-2
-- start nut driver before the daemon
-
-* Thu Apr 23 2015 Michal Hlavinka <mhlavink@redhat.com> - 2.7.3-1
-- nut updated to 2.7.3
-
-* Mon Apr  6 2015 Tom Callaway <spot@fedoraproject.org> - 2.7.2-4
-- rebuild against libvpx 1.4.0
-
-* Sun Aug 17 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.7.2-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_22_Mass_Rebuild
-
-* Sat Jun 07 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.7.2-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
-
-* Tue Apr 22 2014 Michal Hlavinka <mhlavink@redhat.com> - 2.7.2-1
-- nut updated to 2.7.2
-
-* Thu Apr 17 2014 Michal Hlavinka <mhlavink@redhat.com> - 2.7.1-4
-- fix multilib issue (#831429)
-
-* Thu Mar 06 2014 Michal Hlavinka <mhlavink@redhat.com> - 2.7.1-3
-- fix path of nut-driver executable (#1072076)
-- fix location of udev rules
-
-* Thu Mar 06 2014 Michal Hlavinka <mhlavink@redhat.com> - 2.7.1-2
-- fix undefined references in libupsclient (#1071919)
-
-* Thu Feb 27 2014 Michal Hlavinka <mhlavink@redhat.com> - 2.7.1-1
-- nut updated to 2.7.1
-
-* Tue Sep 24 2013 Michal Hlavinka <mhlavink@redhat.com> - 2.6.5-16
-- rebuilt with updated freeipmi (1.3.2)
-
-* Tue Sep 03 2013 Michal Hlavinka <mhlavink@redhat.com> - 2.6.5-15
-- rebuilt with updated freeipmi
-
-* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.6.5-14
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
-
-* Tue Jun 11 2013 Remi Collet <rcollet@redhat.com> - 2.6.5-13
-- rebuild for new GD 2.1.0
-
-* Mon Apr 22 2013 Michal Hlavinka <mhlavink@redhat.com> - 2.6.5-12
-- do not let upsmon run during update (#916472)
-- make binaries hardened (#955157)
-
-* Thu Feb 28 2013 Michal Hlavinka <mhlavink@redhat.com> - 2.6.5-11
-- clean pid file on exit (#916468)
-
-* Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.6.5-10
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
-
-* Mon Jan 21 2013 Adam Tkac <atkac redhat com> - 2.6.5-9
-- rebuild due to "jpeg8-ABI" feature drop
-
-* Mon Jan 07 2013 Michal Hlavinka <mhlavink@redhat.com> - 2.6.5-8
-- do not traceback when ups is not reachable
+* Wed Feb 19 2025 Michal Hlavinka <mhlavink@redhat.com> - 2.8.2.1-0.1.git20240703pr2505
+- build for epel10, trim changelog
 
