@@ -7,14 +7,14 @@
 
 %global cgidir  /var/www/nut-cgi-bin
 %global piddir  /run/nut
-%global modeldir /usr/sbin
+%global modeldir %{_sbindir}
 # powerman is retired on Fedora, therefore disable it by default
 %bcond_with powerman
 
 Summary: Network UPS Tools
 Name: nut
-Version: 2.8.2
-Release: 2%{?dist}
+Version: 2.8.3
+Release: 1%{?dist}
 License: GPL-2.0-or-later AND GPL-3.0-or-later
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -25,11 +25,12 @@ Patch2: nut-2.8.0-piddir-owner.patch
 Patch9: nut-2.6.5-rmpidf.patch
 Patch15: nut-c99-strdup.patch
 
-Requires(pre): shadow-utils
 Requires(post): coreutils systemd
 Requires(preun): systemd
 Requires(postun): coreutils systemd
 Recommends: nut-xml
+Requires: group(dialout)
+Requires: group(tty)
 
 BuildRequires: make
 BuildRequires: autoconf
@@ -46,6 +47,7 @@ BuildRequires: freetype-devel
 BuildRequires: gcc
 BuildRequires: gcc-c++
 BuildRequires: gd-devel
+BuildRequires: jq
 %if 0%{?fedora} < 39
 BuildRequires: libgpiod-devel
 %endif
@@ -68,6 +70,7 @@ BuildRequires: powerman-devel
 %endif
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
+BuildRequires: systemd-devel
 BuildRequires: systemd-rpm-macros
 
 %ifnarch s390 s390x
@@ -89,12 +92,12 @@ live status tracking on web pages, and more.
 Summary: Network UPS Tools client monitoring utilities
 Requires(post): systemd
 Requires(preun): systemd
-Requires(pre): shadow-utils
 %if %{with python2}
 Requires: pygtk2, pygtk2-libglade
 #only for python and gui part
 %endif
-#Requires:
+Requires: group(dialout)
+Requires: group(tty)
 
 %description client
 This package includes the client utilities that are required to monitor a
@@ -104,7 +107,6 @@ attached to a different computer on the network.
 %package cgi
 Summary: CGI utilities for the Network UPS Tools
 Requires: %{name}-client = %{version}-%{release} webserver
-Requires(pre): shadow-utils
 
 %description cgi
 This package includes CGI programs for accessing UPS status via a web
@@ -128,9 +130,9 @@ necessary to develop NUT client applications.
 
 %prep
 %setup -q
-%patch -P2 -p1 -b .piddir-owner
-%patch -P9 -p1 -b .rmpidf
-%patch -P15 -p1
+%patch -P 2 -p1 -b .piddir-owner
+%patch -P 9 -p1 -b .rmpidf
+%patch -P 15 -p1
 
 sed -i 's|=NUT-Monitor|=nut-monitor|'  scripts/python/app/nut-monitor-py3qt5.desktop
 sed -i "s|sys.argv\[0\]|'%{_datadir}/%{name}/nut-monitor/nut-monitor'|" scripts/python/app/NUT-Monitor-py3qt5.in
@@ -142,6 +144,13 @@ find . -mtime -1 -print0 | xargs -0 touch --reference %{SOURCE0}
 
 # fix python site packages check
 sed -i 's|\(PYTHON3\?_SITE_PACKAGES=\)".*"|\1"%{python3_sitelib}"|' m4/nut_check_python.m4
+
+# Create a sysusers.d config file
+cat >nut.sysusers.conf <<EOF
+u nut %{nut_uid} 'Network UPS Tools' %{_localstatedir}/lib/ups /bin/false
+m nut dialout
+m nut tty
+EOF
 
 %build
 %if 0%{?fedora} > 38
@@ -251,11 +260,9 @@ ln -s %{_datadir}/nut/nut-monitor/nut-monitor %{buildroot}%{_bindir}/nut-monitor
 touch %{buildroot}/%{piddir}/upsmon.pid
 chmod 0644 %{buildroot}/%{piddir}/upsmon.pid
 
-%pre
-/usr/sbin/useradd -c "Network UPS Tools" -u %{nut_uid}  \
-        -s /bin/false -r -d %{_localstatedir}/lib/ups %{name} 2> /dev/null || :
-/usr/sbin/usermod -G dialout,tty %{name}
+install -m0644 -D nut.sysusers.conf %{buildroot}%{_sysusersdir}/nut.conf
 
+%pre
 # do not let upsmon run during upgrade rhbz#916472
 # phase 1: stop upsmon before upsd changes
 if [ "$1" = "2" ]; then
@@ -274,15 +281,7 @@ fi
 %postun
 %systemd_postun_with_restart nut-driver.target nut-server.service
 
-%pre client
-/usr/sbin/useradd -c "Network UPS Tools" -u %{nut_uid} \
-        -s /bin/false -r -d %{_localstatedir}/lib/ups %{name} 2> /dev/null || :
-/usr/sbin/usermod -G dialout,tty %{name}
 
-%pre cgi
-/usr/sbin/useradd -c "Network UPS Tools" -u %{nut_uid} \
-        -s /bin/false -r -d %{_localstatedir}/lib/ups %{name} 2> /dev/null || :
-/usr/sbin/usermod -G dialout,tty %{name}
 
 %post client
 %systemd_post nut-monitor.service nut.target
@@ -322,13 +321,20 @@ fi
 %{_unitdir}/nut-driver.target
 %{_unitdir}/nut-server.service
 %{_unitdir}/nut.target
+%{_presetdir}/nut-systemd.preset
+%{_unitdir}/enphase-monitor@.service
+%{_unitdir}/nut-logger.service
+%{_unitdir}/nut-udev-settle.service
 %{_sbindir}/upsd
 %{_bindir}/nutconf
 %{_bindir}/nut-scanner
 %{_libdir}/libnutscan.so.*
+%{_libdir}/libnutconf.so.*
 %{_libexecdir}/nut-driver-enumerator.sh
 %{_libexecdir}/sockdebug
+%{_libexecdir}/enphase-monitor
 %{_datadir}/augeas/lenses/dist/nut*
+%{_datadir}/augeas/lenses/dist/tests/test_nut.aug
 %{_datadir}/%{name}/cmdvartab
 %{_datadir}/%{name}/driver.list
 %{_mandir}/man5/ups.conf.5.gz
@@ -344,6 +350,7 @@ fi
 %{_mandir}/man8/apcsmart.8.gz
 %{_mandir}/man8/apcsmart-old.8.gz
 %{_mandir}/man8/apcupsd-ups.8.gz
+%{_mandir}/man8/asem.8.gz
 %{_mandir}/man8/bcmxcp.8*
 %{_mandir}/man8/bcmxcp_usb.8.gz
 %{_mandir}/man8/belkin.8.gz
@@ -352,9 +359,11 @@ fi
 %{_mandir}/man8/bestfortress.8.gz
 %{_mandir}/man8/bestups.8.gz
 %{_mandir}/man8/bestuferrups.8.gz
+%{_mandir}/man8/bicker_ser.8.gz
 %{_mandir}/man8/blazer_ser.8.gz
 %{_mandir}/man8/blazer_usb.8.gz
 %{_mandir}/man8/clone.8.gz
+%{_mandir}/man8/clone-outlet.8.gz
 %{_mandir}/man8/dummy-ups.8.gz
 %{_mandir}/man8/everups.8.gz
 %{_mandir}/man8/etapro.8.gz
@@ -364,17 +373,20 @@ fi
 %if 0%{?fedora} < 39
 %{_mandir}/man8/generic_gpio.8.gz
 %endif
+%{_mandir}/man8/hwmon_ina219.8.gz
 %{_mandir}/man8/huawei-ups2000.8.gz
 %{_mandir}/man8/isbmex.8.gz
 %{_mandir}/man8/ivtscd.8.gz
 %{_mandir}/man8/liebert.8.gz
 %{_mandir}/man8/liebert-esp2.8.gz
+%{_mandir}/man8/liebert-gxe.8.gz
 %{_mandir}/man8/masterguard.8.gz
 %{_mandir}/man8/metasys.8.gz
 %{_mandir}/man8/microdowell.8.gz
 %{_mandir}/man8/microsol-apc.8.gz
 %{_mandir}/man8/mge-utalk.8.gz
 %{_mandir}/man8/mge-shut.8.gz
+%{_mandir}/man8/nhs_ser.8.gz
 %{_mandir}/man8/nutupsdrv.8.gz
 %{_mandir}/man8/nutdrv_atcl_usb.8.gz
 %{_mandir}/man8/nutdrv_siemens_sitop.8.gz
@@ -386,6 +398,7 @@ fi
 %{_mandir}/man8/oneac.8.gz
 %{_mandir}/man8/optiups.8.gz
 %{_mandir}/man8/phoenixcontact_modbus.8.gz
+%{_mandir}/man8/pijuice.8.gz
 %{_mandir}/man8/powercom.8.gz
 %if %{with powerman}
 %{_mandir}/man8/powerman-pdu.8.gz
@@ -410,6 +423,7 @@ fi
 %{_mandir}/man8/upsdrvctl.8.gz
 %{_mandir}/man8/upsdrvsvcctl.8.gz
 %{_mandir}/man8/usbhid-ups.8.gz
+%{_sysusersdir}/nut.conf
 
 %files client
 %license COPYING LICENSE-GPL2 LICENSE-GPL3
@@ -453,6 +467,7 @@ fi
 %{_datadir}/pixmaps/nut-monitor.png
 %{_datadir}/applications/nut-monitor.desktop
 %endif
+%{_sysusersdir}/nut.conf
 
 %files cgi
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/ups/hosts.conf
@@ -480,13 +495,21 @@ fi
 %{_libdir}/libupsclient.so
 %{_libdir}/libnutclient.so
 %{_libdir}/libnutclientstub.so
+%{_libdir}/libnutconf.so
 %{_libdir}/libnutscan.so
 %{_libdir}/pkgconfig/libupsclient.pc
 %{_libdir}/pkgconfig/libnutclient.pc
+%{_libdir}/pkgconfig/libnutconf.pc
 %{_libdir}/pkgconfig/libnutclientstub.pc
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Tue Apr 29 2025 Michal Hlavinka <mhlavink@redhat.com> - 2.8.3-1
+- updated to 2.8.3 (#2352734)
+- Add sysusers.d config file to allow rpm to create users/groups automatically
+- fix ftbfs, make it build with unified bin/sbin
+- Add BR systemd-devel to enable systemd notification support
+
 * Wed Oct 02 2024 Michal Hlavinka <mhlavink@redhat.com> - 2.8.2-2
 - enable modbus drivers (rhbz#2314661)
 
