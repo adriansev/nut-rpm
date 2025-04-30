@@ -350,7 +350,6 @@ fi
 %{_mandir}/man8/apcsmart.8.gz
 %{_mandir}/man8/apcsmart-old.8.gz
 %{_mandir}/man8/apcupsd-ups.8.gz
-%{_mandir}/man8/asem.8.gz
 %{_mandir}/man8/bcmxcp.8*
 %{_mandir}/man8/bcmxcp_usb.8.gz
 %{_mandir}/man8/belkin.8.gz
@@ -373,7 +372,6 @@ fi
 %if 0%{?fedora} < 39
 %{_mandir}/man8/generic_gpio.8.gz
 %endif
-%{_mandir}/man8/hwmon_ina219.8.gz
 %{_mandir}/man8/huawei-ups2000.8.gz
 %{_mandir}/man8/isbmex.8.gz
 %{_mandir}/man8/ivtscd.8.gz
@@ -398,7 +396,6 @@ fi
 %{_mandir}/man8/oneac.8.gz
 %{_mandir}/man8/optiups.8.gz
 %{_mandir}/man8/phoenixcontact_modbus.8.gz
-%{_mandir}/man8/pijuice.8.gz
 %{_mandir}/man8/powercom.8.gz
 %if %{with powerman}
 %{_mandir}/man8/powerman-pdu.8.gz
