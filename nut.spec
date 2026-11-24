@@ -14,7 +14,7 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.4
-Release: 1%{?dist}
+Release: 1.iss1%{?dist}
 License: GPL-2.0-or-later AND GPL-3.0-or-later
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -514,6 +514,10 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Tue Nov 24 2026 Adrian Sevcenco <adrian.sevcenco@spacescience.ro> - 2.8.4-1.iss1
+- ISS local rebuild of upstream 2.8.4 for AlmaLinux 10 (EPEL ships 2.8.2)
+- includes CPS HID output.voltage LogMax fix (upstream #1512, commit 94d65f677)
+
 * Thu Aug 14 2025 Michal Hlavinka <mhlavink@redhat.com> - 2.8.4-1
 - updated to 2.8.4 (#2387244)
 - rename rhino to nutdrv_rhino to prevent file conflict (rhbz#2367057)
