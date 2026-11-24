@@ -14,7 +14,7 @@
 Summary: Network UPS Tools
 Name: nut
 Version: 2.8.4
-Release: 1%{?dist}
+Release: 1.iss1%{?dist}
 License: GPL-2.0-or-later AND GPL-3.0-or-later
 Url: https://www.networkupstools.org/
 Source: https://www.networkupstools.org/source/2.8/%{name}-%{version}.tar.gz
@@ -512,6 +512,10 @@ fi
 %{_libdir}/pkgconfig/libnutscan.pc
 
 %changelog
+* Tue Nov 24 2026 Adrian Sevcenco <adrian.sevcenco@spacescience.ro> - 2.8.4-1.iss1
+- ISS local rebuild of upstream 2.8.4 for AlmaLinux 9 (EPEL ships 2.8.2)
+- includes CPS HID output.voltage LogMax fix (upstream #1512, commit 94d65f677)
+
 * Tue Apr 29 2025 Michal Hlavinka <mhlavink@redhat.com> - 2.8.3-1
 - updated to 2.8.3 (#2352734)
 - Add sysusers.d config file to allow rpm to create users/groups automatically
